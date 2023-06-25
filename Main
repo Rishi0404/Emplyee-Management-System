@@ -1,0 +1,164 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+class Employee {
+    private String id;
+    private String name;
+    private String designation;
+
+    public Employee(String id, String name, String designation) {
+        this.id = id;
+        this.name = name;
+        this.designation = designation;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getDesignation() {
+        return designation;
+    }
+}
+
+public class EmployeeManagementSystem extends JFrame {
+    private List<Employee> employeeList;
+    private JTextField idField;
+    private JTextField nameField;
+    private JTextField designationField;
+    private JTextArea employeeArea;
+    private Connection connection;
+
+    public EmployeeManagementSystem() {
+        employeeList = new ArrayList<>();
+
+        try {
+            // Establishing the database connection
+            String url = "jdbc:mysql://localhost:3306/your_database_name";
+            String username = "your_username";
+            String password = "your_password";
+            connection = DriverManager.getConnection(url, username, password);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Failed to connect to the database!");
+        }
+
+        setTitle("Employee Management System");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new FlowLayout());
+
+        JLabel idLabel = new JLabel("Employee ID:");
+        idField = new JTextField(15);
+        JLabel nameLabel = new JLabel("Name:");
+        nameField = new JTextField(15);
+        JLabel designationLabel = new JLabel("Designation:");
+        designationField = new JTextField(15);
+
+        JButton addButton = new JButton("Add Employee");
+        addButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                String id = idField.getText();
+                String name = nameField.getText();
+                String designation = designationField.getText();
+
+                try {
+                    // Inserting the employee into the database
+                    PreparedStatement statement = connection.prepareStatement("INSERT INTO employees VALUES (?, ?, ?)");
+                    statement.setString(1, id);
+                    statement.setString(2, name);
+                    statement.setString(3, designation);
+                    statement.executeUpdate();
+                    statement.close();
+
+                    Employee employee = new Employee(id, name, designation);
+                    employeeList.add(employee);
+
+                    idField.setText("");
+                    nameField.setText("");
+                    designationField.setText("");
+
+                    JOptionPane.showMessageDialog(EmployeeManagementSystem.this, "Employee added successfully!");
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(EmployeeManagementSystem.this, "Failed to add employee!");
+                }
+            }
+        });
+
+        JButton viewButton = new JButton("View Employees");
+        viewButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                StringBuilder sb = new StringBuilder();
+                for (Employee employee : employeeList) {
+                    sb.append("ID: " + employee.getId() + "\n");
+                    sb.append("Name: " + employee.getName() + "\n");
+                    sb.append("Designation: " + employee.getDesignation() + "\n");
+                    sb.append("-------------------\n");
+                }
+                employeeArea.setText(sb.toString());
+            }
+        });
+
+        JLabel searchLabel = new JLabel("Search by ID:");
+        JTextField searchField = new JTextField(15);
+        JButton searchButton = new JButton("Search");
+        searchButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                String searchId = searchField.getText();
+                Employee foundEmployee = null;
+
+                for (Employee employee : employeeList) {
+                    if (employee.getId().equals(searchId)) {
+                        foundEmployee = employee;
+                        break;
+                    }
+                }
+
+                if (foundEmployee != null) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("ID: " + foundEmployee.getId() + "\n");
+                    sb.append("Name: " + foundEmployee.getName() + "\n");
+                    sb.append("Designation: " + foundEmployee.getDesignation() + "\n");
+                    employeeArea.setText(sb.toString());
+                } else {
+                    JOptionPane.showMessageDialog(EmployeeManagementSystem.this, "Employee not found!");
+                }
+            }
+        });
+
+        employeeArea = new JTextArea(10, 30);
+        employeeArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(employeeArea);
+
+        add(idLabel);
+        add(idField);
+        add(nameLabel);
+        add(nameField);
+        add(designationLabel);
+        add(designationField);
+        add(addButton);
+        add(viewButton);
+        add(searchLabel);
+        add(searchField);
+        add(searchButton);
+        add(scrollPane);
+
+        pack();
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                new EmployeeManagementSystem().setVisible(true);
+            }
+        });
+    }
+}
